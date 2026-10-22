@@ -5,7 +5,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from test_setup import make_driver
 
-HOME_URL = "https://ecommerce-playground.lambdatest.io/index.php?route=common/home"
+ARTICLE_URL = "https://ecommerce-playground.lambdatest.io/index.php?route=extension/maza/blog/article&article_id=37"
+ARTICLE_TITLE = "amet volutpat consequat mauris nunc congue nisi vitae suscipit tellus"
 
 NAME = "Systems Tester"
 EMAIL = "st.test.1792645713@example.com"
@@ -23,16 +24,9 @@ def driver():
     driver.quit()
 
 
-def open_article_from_home(driver):
-    # The header search only searches products, so articles are reached
-    # through the "From the blog" section on the home page instead.
-    driver.get(HOME_URL)
-    links = driver.find_elements(By.CSS_SELECTOR, "a[href*='blog/article']")
-    article_link = next(a for a in links if a.is_displayed() and a.text.strip())
-    article_title = article_link.text.strip()
-    article_link.click()
-    assert "blog/article" in driver.current_url
-    return article_title
+def open_article(driver):
+    driver.get(ARTICLE_URL)
+    assert driver.find_element(By.TAG_NAME, "h1").text == ARTICLE_TITLE
 
 
 def fill_comment_form(driver, name, email, comment):
@@ -52,19 +46,17 @@ def wait_for_success_alert(driver):
 def test_write_valid_comment(driver):
     """
     Scenario 1: Write a valid comment on an article
-    1. Open the home page.
-    2. Click the first article in the "From the blog" section.
-    3. Verify the article page is opened.
-    4. Enter a name in the "Your Name" field.
-    5. Enter an e-mail address in the "Email" field.
-    6. Enter a comment of 25-1000 characters in the "Your comment" field.
-    7. Click the "Post comment" button.
-    8. Verify the message "Thank you for your comment. It has been submitted
+    1. Open the blog article page (article_id=37).
+    2. Verify the article title is shown.
+    3. Enter a name in the "Your Name" field.
+    4. Enter an e-mail address in the "Email" field.
+    5. Enter a comment of 25-1000 characters in the "Your comment" field.
+    6. Click the "Post comment" button.
+    7. Verify the message "Thank you for your comment. It has been submitted
        to the webmaster for approval." is shown.
-    9. Verify the comment field is cleared.
+    8. Verify the comment field is cleared.
     """
-    article_title = open_article_from_home(driver)
-    assert driver.title.lower() == article_title.lower()
+    open_article(driver)
 
     fill_comment_form(driver, NAME, EMAIL, COMMENT)
 
@@ -76,18 +68,17 @@ def test_write_valid_comment(driver):
 def test_write_empty_comment(driver):
     """
     Scenario 2: Write an empty comment on an article
-    1. Open the home page.
-    2. Click the first article in the "From the blog" section.
-    3. Verify the article page is opened.
-    4. Enter a name in the "Your Name" field.
-    5. Enter an e-mail address in the "Email" field.
-    6. Leave the "Your comment" field empty.
-    7. Click the "Post comment" button.
-    8. Verify the comment field is highlighted as invalid.
-    9. Verify the warning "Comment Text must be between 25 and 1000 characters!" is shown.
-    10. Verify no success message is shown.
+    1. Open the blog article page (article_id=37).
+    2. Verify the article title is shown.
+    3. Enter a name in the "Your Name" field.
+    4. Enter an e-mail address in the "Email" field.
+    5. Leave the "Your comment" field empty.
+    6. Click the "Post comment" button.
+    7. Verify the comment field is highlighted as invalid.
+    8. Verify the warning "Comment Text must be between 25 and 1000 characters!" is shown.
+    9. Verify no success message is shown.
     """
-    open_article_from_home(driver)
+    open_article(driver)
 
     fill_comment_form(driver, NAME, EMAIL, "")
 
@@ -104,20 +95,19 @@ def test_write_empty_comment(driver):
 def test_reply_to_existing_comment(driver):
     """
     Scenario 3: Reply to an existing comment
-    1. Open the home page.
-    2. Click the first article in the "From the blog" section.
-    3. Verify the article page is opened.
-    4. Click the "Reply" link of the first comment in the comment list.
-    5. Verify the comment form moves under that comment and
+    1. Open the blog article page (article_id=37).
+    2. Verify the article title is shown.
+    3. Click the "Reply" link of the first comment in the comment list.
+    4. Verify the comment form moves under that comment and
        a "Cancel reply" link is shown.
-    6. Enter a name in the "Your Name" field.
-    7. Enter an e-mail address in the "Email" field.
-    8. Enter a reply of 25-1000 characters in the "Your comment" field.
-    9. Click the "Post comment" button.
-    10. Verify the message "Thank you for your comment. It has been submitted
-        to the webmaster for approval." is shown.
+    5. Enter a name in the "Your Name" field.
+    6. Enter an e-mail address in the "Email" field.
+    7. Enter a reply of 25-1000 characters in the "Your comment" field.
+    8. Click the "Post comment" button.
+    9. Verify the message "Thank you for your comment. It has been submitted
+       to the webmaster for approval." is shown.
     """
-    open_article_from_home(driver)
+    open_article(driver)
 
     # The comment list is loaded with AJAX after the page opens
     reply_link = WebDriverWait(driver, 10).until(
