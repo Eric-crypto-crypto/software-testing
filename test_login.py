@@ -5,11 +5,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from test_setup import make_driver
 
-LOGIN_URL = "https://ecommerce-playground.lambdatest.io/index.php?route=account/login"
-ACCOUNT_URL = "https://ecommerce-playground.lambdatest.io/index.php?route=account/account"
+LOGIN_URL = "https://opencart.abstracta.us/index.php?route=account/login"
+ACCOUNT_URL = "https://opencart.abstracta.us/index.php?route=account/account"
 
 # Dedicated test account registered on the demo site for these tests
-VALID_EMAIL = "st.test.1792645713@example.com"
+VALID_EMAIL = "st.test.1792898243@example.com"
 VALID_PASSWORD = "Test@12345"
 
 ERROR_MESSAGE = "Warning: No match for E-Mail Address and/or Password."
@@ -29,11 +29,18 @@ def login(driver, email, password):
     driver.find_element(By.CSS_SELECTOR, "input[type='submit'][value='Login']").click()
 
 
+def wait_for_error_alert(driver):
+    # The login page reloads after submitting, so wait for the warning to appear
+    return WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CSS_SELECTOR, ".alert-danger"))
+    )
+
+
 # Runs before the valid-login test on purpose: the site locks an account after
 # several failed attempts, and a successful login resets the counter.
 def test_login_with_wrong_password(driver):
     """
-    Scenario 2: Login fails with a wrong password
+    Scenario 1: Login fails with a wrong password
     1. Open the login page.
     2. Enter the registered e-mail address.
     3. Enter an incorrect password.
@@ -43,14 +50,14 @@ def test_login_with_wrong_password(driver):
     """
     login(driver, VALID_EMAIL, "WrongPassword999")
 
+    alert = wait_for_error_alert(driver)
     assert driver.current_url == LOGIN_URL
-    alert = driver.find_element(By.CSS_SELECTOR, ".alert-danger")
     assert ERROR_MESSAGE in alert.text
 
 
 def test_login_with_valid_credentials(driver):
     """
-    Scenario 1: Login succeeds with a registered account
+    Scenario 2: Login succeeds with a registered account
     1. Open the login page.
     2. Enter the registered e-mail address.
     3. Enter the correct password.
@@ -80,9 +87,10 @@ def test_login_with_empty_fields(driver):
     """
     login(driver, "", "")
 
-    assert driver.current_url == LOGIN_URL
     # The empty e-mail is shared by everyone using this public demo site, so it
     # is often locked out; either "No match..." or a lockout warning is valid.
-    alert = driver.find_element(By.CSS_SELECTOR, ".alert-danger")
+    alert = wait_for_error_alert(driver)
+    assert driver.current_url == LOGIN_URL
     assert alert.text.startswith("Warning:")
     assert len(driver.find_elements(By.LINK_TEXT, "Logout")) == 0
+

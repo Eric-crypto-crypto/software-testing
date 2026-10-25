@@ -5,8 +5,8 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from test_setup import make_driver
 
-PRODUCT_URL = "https://ecommerce-playground.lambdatest.io/index.php?route=product/product&product_id=40"
-CART_URL = "https://ecommerce-playground.lambdatest.io/index.php?route=checkout/cart"
+PRODUCT_URL = "https://opencart.abstracta.us/index.php?route=product/product&product_id=40"
+CART_URL = "https://opencart.abstracta.us/index.php?route=checkout/cart"
 PRODUCT_NAME = "iPhone"
 
 UPDATE_MESSAGE = "Success: You have modified your shopping cart!"
@@ -26,13 +26,19 @@ def driver():
 def cart_with_product(driver):
     # Each test gets a new browser session, so it starts with its own empty cart
     driver.get(PRODUCT_URL)
-    add_button = next(b for b in driver.find_elements(By.CSS_SELECTOR, "button.button-cart") if b.is_displayed())
-    add_button.click()
+    driver.find_element(By.ID, "button-cart").click()
     WebDriverWait(driver, 10).until(
-        EC.text_to_be_present_in_element((By.ID, "notification-box-top"), "Success: You have added")
+        EC.text_to_be_present_in_element((By.CSS_SELECTOR, ".alert-success"), "Success: You have added")
     )
     driver.get(CART_URL)
     return driver
+
+
+def cart_button(driver, name):
+    # Bootstrap tooltips move "title" to "data-original-title" once the page loads
+    return driver.find_element(
+        By.CSS_SELECTOR, f"#content button[title='{name}'], #content button[data-original-title='{name}']"
+    )
 
 
 def wait_for_success_alert(driver):
@@ -61,7 +67,7 @@ def test_update_product_quantity(cart_with_product):
 
     quantity.clear()
     quantity.send_keys("3")
-    driver.find_element(By.CSS_SELECTOR, "#content button[title='Update']").click()
+    cart_button(driver, "Update").click()
 
     alert = wait_for_success_alert(driver)
     assert UPDATE_MESSAGE in alert.text
@@ -92,7 +98,7 @@ def test_estimate_shipping_and_taxes(cart_with_product):
     12. Verify the cart totals include the "Flat Shipping Rate" line.
     """
     driver = cart_with_product
-    driver.find_element(By.CSS_SELECTOR, "[data-target='#collapse-shipping']").click()
+    driver.find_element(By.CSS_SELECTOR, "a[href='#collapse-shipping']").click()
 
     country = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "input-country")))
     Select(country).select_by_visible_text("Australia")
@@ -108,9 +114,7 @@ def test_estimate_shipping_and_taxes(cart_with_product):
 
     modal = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.ID, "modal-shipping")))
     assert "Flat Shipping Rate" in modal.text
-    # The radio is covered by a styled label, so click it with JavaScript
-    radio = modal.find_element(By.CSS_SELECTOR, "input[name='shipping_method'][value='flat.flat']")
-    driver.execute_script("arguments[0].click();", radio)
+    modal.find_element(By.CSS_SELECTOR, "input[name='shipping_method'][value='flat.flat']").click()
     driver.find_element(By.ID, "button-shipping").click()
 
     alert = wait_for_success_alert(driver)
@@ -132,7 +136,7 @@ def test_remove_product_from_cart(cart_with_product):
     driver = cart_with_product
     assert PRODUCT_NAME in driver.find_element(By.CSS_SELECTOR, "#content tbody tr").text
 
-    driver.find_element(By.CSS_SELECTOR, "#content button[title='Remove']").click()
+    cart_button(driver, "Remove").click()
 
     # Remove is done with AJAX and then the page reloads
     WebDriverWait(driver, 10).until(
